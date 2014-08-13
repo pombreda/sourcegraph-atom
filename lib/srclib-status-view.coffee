@@ -4,7 +4,7 @@ module.exports =
 class SrclibStatusView extends View
   @content: ->
     @div class: 'inline-block', =>
-      @span class: 'build-success build-status', outlet: 'status', tabindex: -1, '', =>
+      @span class: ' build-success build-status', outlet: 'status', tabindex: -1, '', =>
         @img class: 'status-image'
         @text "srclib"
 

@@ -12,6 +12,8 @@
 
   img {
     content:url("atom://sourcegraph-atom/images/nobuild.svg");
+    max-width: 100%;
+    max-height: 100%;
   }
 
   &.build-success {
@@ -29,6 +31,12 @@
       content:url("atom://sourcegraph-atom/images/buildfail.svg");
     }
   }
+
+  &.build-inprogress {
+    img {
+      content:url("atom://sourcegraph-atom/images/spinner.svg");
+    }
+  }
 }
 
 .sourcegraph-overlay {
@@ -39,15 +47,11 @@
   height: 100%;
 }
 
-.identifier {
-  background-color : rgba(255, 255, 255, 0.08);
-  position : absolute;
-  height: 20px;
+.identifier .region {
+  background-color : rgba(255, 255, 255, 0.04);
+}
 
-  z-index:10000;
-
-  &:hover {
-    background-color : rgba(255, 255, 255, 1);
-    text-decoration:underline;
-  }
+.examples-page {
+  background-color: #fff;
+  overflow: scroll;
 }
