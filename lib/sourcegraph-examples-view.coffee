@@ -26,6 +26,8 @@ examplesTemplate = """
 
 module.exports =
 class ExamplesView extends ScrollView
+  # TODO: Add serialization
+
   @content: ->
     @div class: 'examples-page native-key-bindings', tabindex: -1
 

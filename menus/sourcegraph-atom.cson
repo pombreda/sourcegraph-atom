@@ -2,3 +2,17 @@
 'context-menu':
   '.overlayer':
       'Jump To Definition': 'sourcegraph-atom:jump-to-definition'
+      'See Documentation and Examples' : 'sourcegraph-atom:docs-examples'
+
+'menu' : [
+  'label' : 'Packages',
+  'submenu' : [
+    'label' : 'Sourcegraph'
+    'submenu' : [
+      {
+        'label' : 'Search on Sourcgraph',
+        'command' : 'sourcegraph-atom:search-on-sourcegraph'
+      }
+    ]
+  ]
+]

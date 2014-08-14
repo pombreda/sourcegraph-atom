@@ -7,5 +7,6 @@
 
 # For more detailed documentation see
 # https://atom.io/docs/latest/advanced/keymaps
-#'.workspace':
-#  'ctrl-alt-o': 'sourcegraph-atom:toggle'
+'.workspace':
+  'alt-.': 'sourcegraph-atom:jump-to-definition'
+  'ctrl-alt-d' : 'sourcegraph-atom:docs-examples'

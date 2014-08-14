@@ -1,30 +1,38 @@
 ConditionalContextMenu = require './conditional-contextmenu'
-SrclibStatusView = require('./srclib-status-view')
+
 {Editor, EditorView, $, Range, Point} = require 'atom'
+
 
 path = require 'path'
 child_process = require 'child_process'
 util = require 'util'
+openbrowser = require './openbrowser'
 
-ExamplesView = require './sourcegraph-examples-view'
+
 
 repeatString = (str, n) -> new Array( n + 1 ).join( str );
 
+ExamplesView = require './sourcegraph-examples-view'
 examplesView = null
+
+SrclibStatusView = require('./srclib-status-view')
 statusView = null
 
+SearchView = require('./sourcegraph-search-view')
+searchView = null
+
 byteToPosition = (editor, byte) ->
-  # TODO: Only works for ASCII
+  # FIXME: Only works for ASCII
   editor.buffer.positionForCharacterIndex(byte)
 
 positionToByte = (editor, point) ->
-  # TODO: Only works for ASCII
+  # FIXME: Only works for ASCII
   editor.buffer.characterIndexForPosition(point)
 
 module.exports =
   activate: (state) ->
     statusView = new SrclibStatusView(state.viewState)
-
+    searchView = new SearchView(state.viewState)
 
     atom.packages.once 'activated', ->
       statusView.attach()
@@ -47,21 +55,24 @@ module.exports =
             refs = JSON.parse(stdout)
             if refs
               for ref in refs
-                # TODO: Only works for ASCII
                 start = byteToPosition(editor, ref.Start)
                 end = byteToPosition(editor, ref.End)
 
                 range = new Range(start, end)
                 marker = editor.markBufferRange(range)
                 decoration = editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
+              #TODO: Reload highlights on file save
             else
               console.log("No references in this file.")
 
             statusView.success()
         )
 
+    # TODO: Add keyboard shortcuts
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
     atom.workspaceView.command "sourcegraph-atom:docs-examples", => @docsExamples true
+
+    atom.workspaceView.command "sourcegraph-atom:search-on-sourcegraph", => @searchOnSourcegraph true
 
     atom.workspace.registerOpener (uri) ->
       console.log(uri)
@@ -70,7 +81,7 @@ module.exports =
       else
         return null
 
-    ConditionalContextMenu.item {
+    ###ConditionalContextMenu.item {
       label: 'Jump To Definition'
       command: 'sourcegraph-atom:jump-to-definition',
     }, => return true
@@ -78,7 +89,7 @@ module.exports =
     ConditionalContextMenu.item {
       label: 'See Documentation and Examples'
       command: 'sourcegraph-atom:docs-examples',
-    }, => return true
+    }, => return true###
 
 
   jumpToDefinition: ->
@@ -107,7 +118,7 @@ module.exports =
         else
           statusView.success()
           if not def.Repo
-            #TODO: Only works when atom project path matches
+            #FIXME: Only works when atom project path matches
             atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
               offset = byteToPosition(editor, def.DefStart)
 
@@ -115,8 +126,9 @@ module.exports =
               editor.scrollToCursorPosition()
             )
           else
-            url = util.format("xdg-open \"http://www.sourcegraph.com/%s/.%s/%s/.def/%s\"", def.Repo, def.UnitType, def.Unit, def.Path)
-            console.log(url)
+            # TODO: Resolve to local file, for now, just opens sourcegraph.com
+            url = util.format("http://www.sourcegraph.com/%s/.%s/%s/.def/%s", def.Repo, def.UnitType, def.Unit, def.Path)
+            openbrowser(url)
 
     )
 
@@ -142,3 +154,6 @@ module.exports =
           previousActivePane.activate()
           statusView.success("Not a valid reference.")
     )
+
+  searchOnSourcegraph: ->
+    searchView.toggle()

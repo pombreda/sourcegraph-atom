@@ -22,6 +22,5 @@ used to construct the query. This includes information such as the clone URL of
 the repository you're currently in, the filename and character position, and
 the name of the identifier's definition.
 
-## TODO
-- Add Sourcegraph Search Command
-- Publish to APM
+## Acknowledgments
+Spinner SVG - https://github.com/jxnblk/loading
