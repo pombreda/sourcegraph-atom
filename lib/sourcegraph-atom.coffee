@@ -6,11 +6,17 @@ path = require 'path'
 child_process = require 'child_process'
 util = require 'util'
 
+handlebars = require 'handlebars'
+var examplesTemplate = Handlebars.compile("""
+TEST
+""");
+
 ExamplesView = require './sourcegraph-examples-view'
 
 repeatString = (str, n) -> new Array( n + 1 ).join( str );
 
 examplesView = null
+statusView = null
 
 byteToPosition = (editor, byte) ->
   # TODO: Only works for ASCII
@@ -34,25 +40,25 @@ module.exports =
         command = util.format('src api list --file "%s"', filePath)
         console.log(command)
 
+        statusView.inprogress(command)
         child_process.exec(command, {
             maxBuffer: 200*1024*100
           }, (error, stdout, stderr) ->
 
           if error
             console.log(error)
+            statusView.fail(error)
           else
             for ref in JSON.parse(stdout)
               # TODO: Only works for ASCII
-              start = editor.buffer.positionForCharacterIndex(ref.Start)
-              end = editor.buffer.positionForCharacterIndex(ref.End)
-
+              start = byteToPosition(editor, ref.Start)
+              end = byteToPosition(editor, ref.End)
 
               range = new Range(start, end)
               marker = editor.markBufferRange(range)
               decoration = editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
 
-            #overlay.on 'mouseenter', ->
-              #console.log($this)
+            statusView.success()
         )
 
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
@@ -74,6 +80,44 @@ module.exports =
     filePath = editor.getPath()
     # TODO: Only works for ASCII
     offset = positionToByte(editor, editor.getCursorBufferPosition())
+    command = util.format('src api describe --file="%s" --start-byte=%d --no-examples', filePath, offset)
+    console.log(command)
+
+    statusView.inprogress(command)
+    child_process.exec(command, {
+        maxBuffer: 200*1024*100
+      }, (error, stdout, stderr) ->
+
+      if error
+        console.log(error)
+        statusView.fail(error)
+      else
+
+        result = JSON.parse(stdout)
+
+        def = result.Def
+        if not def
+          statusView.success("Not a valid reference.")
+        else
+          statusView.success()
+          if not def.Repo
+            #TODO: Only works when atom project path matches
+            atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
+              offset = byteToPosition(editor, def.DefStart)
+
+              editor.setCursorBufferPosition(offset)
+              editor.scrollToCursorPosition()
+            )
+          else
+            url = util.format("xdg-open \"http://www.sourcegraph.com/%s/.%s/%s/.def/%s\"", def.Repo, def.UnitType, def.Unit, def.Path)
+            console.log(url)
+
+    )
+
+  docsExamples: ->
+    editor = atom.workspace.getActiveEditor()
+    filePath = editor.getPath()
+    offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('src api describe --file="%s" --start-byte=%d', filePath, offset)
     console.log(command)
 
@@ -84,35 +128,5 @@ module.exports =
       if error
         console.log(error)
       else
-        result = JSON.parse(stdout)
-
-        def = result.Def
-        if def.Repo
-          pass
-        else
-          #TODO: Only works when atom project path matches
-          atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
-            offset = byteToPosition(editor, def.DefStart)
-
-            editor.setCursorBufferPosition(offset)
-            editor.scrollToCursorPosition()
-          )
-    )
-
-  docsExamples: ->
-    editor = atom.workspace.getActiveEditor()
-    filePath = editor.getPath()
-    # TODO: Only works for ASCII
-    offset = editor.buffer.characterIndexForPosition(editor.getCursorBufferPosition())
-    command = util.format('src api describe --file="%s" --start-byte=%d --examples', filePath, offset)
-    console.log(command)
-
-    child_process.exec(command, {
-        maxBuffer: 200*1024*100
-      }, (error, stdout, stderr) ->
-
-      if error
-        console.log(error)
-      else
-        console.log(stdout)
+        console.log(JSON.parse(stdout))
     )
