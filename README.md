@@ -1,7 +1,7 @@
 # Sourcegraph Atom Integration
 A plugin for Github's Atom editor that integrates with srclib and the Sourcegraph API.
 
-![Screenshot](https://raw.githubusercontent.com/sourcegraph/sourcegraph-atom/master/screenshot.pnd)
+![Screenshot](https://raw.githubusercontent.com/sourcegraph/sourcegraph-atom/master/screenshot.png)
 
 Current Features
 - Jump To Definition
