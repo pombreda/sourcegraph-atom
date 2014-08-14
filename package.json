@@ -9,6 +9,7 @@
     "atom": ">0.50.0"
   },
   "dependencies": {
-    "handlebars" : ""
+    "mustache" : "0.8.2",
+    "underscore-plus" : "1.x"
   }
 }

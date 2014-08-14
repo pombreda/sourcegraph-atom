@@ -6,11 +6,6 @@ path = require 'path'
 child_process = require 'child_process'
 util = require 'util'
 
-handlebars = require 'handlebars'
-examplesTemplate = Handlebars.compile("""
-TEST
-""");
-
 ExamplesView = require './sourcegraph-examples-view'
 
 repeatString = (str, n) -> new Array( n + 1 ).join( str );
@@ -49,20 +44,31 @@ module.exports =
             console.log(error)
             statusView.fail(error)
           else
-            for ref in JSON.parse(stdout)
-              # TODO: Only works for ASCII
-              start = byteToPosition(editor, ref.Start)
-              end = byteToPosition(editor, ref.End)
+            refs = JSON.parse(stdout)
+            if refs
+              for ref in refs
+                # TODO: Only works for ASCII
+                start = byteToPosition(editor, ref.Start)
+                end = byteToPosition(editor, ref.End)
 
-              range = new Range(start, end)
-              marker = editor.markBufferRange(range)
-              decoration = editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
+                range = new Range(start, end)
+                marker = editor.markBufferRange(range)
+                decoration = editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
+            else
+              console.log("No references in this file.")
 
             statusView.success()
         )
 
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
     atom.workspaceView.command "sourcegraph-atom:docs-examples", => @docsExamples true
+
+    atom.workspace.registerOpener (uri) ->
+      console.log(uri)
+      if uri is 'sourcegraph-atom://docs-examples'
+        return new ExamplesView()
+      else
+        return null
 
     ConditionalContextMenu.item {
       label: 'Jump To Definition'
@@ -78,7 +84,7 @@ module.exports =
   jumpToDefinition: ->
     editor = atom.workspace.getActiveEditor()
     filePath = editor.getPath()
-    # TODO: Only works for ASCII
+
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('src api describe --file="%s" --start-byte=%d --no-examples', filePath, offset)
     console.log(command)
@@ -120,6 +126,7 @@ module.exports =
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('src api describe --file="%s" --start-byte=%d', filePath, offset)
     console.log(command)
+    statusView.inprogress(command)
 
     child_process.exec(command, {
         maxBuffer: 200*1024*100
@@ -127,6 +134,11 @@ module.exports =
 
       if error
         console.log(error)
+        statusView.fail(error)
       else
-        console.log(JSON.parse(stdout))
+        previousActivePane = atom.workspace.getActivePane()
+        atom.workspace.open('sourcegraph-atom://docs-examples', split: 'right', searchAllPanes: true).done (examplesView) ->
+          examplesView.display(JSON.parse(stdout))
+          previousActivePane.activate()
+          statusView.success("Not a valid reference.")
     )
