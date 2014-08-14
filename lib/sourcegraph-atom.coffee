@@ -7,7 +7,7 @@ child_process = require 'child_process'
 util = require 'util'
 
 handlebars = require 'handlebars'
-var examplesTemplate = Handlebars.compile("""
+examplesTemplate = Handlebars.compile("""
 TEST
 """);
 
