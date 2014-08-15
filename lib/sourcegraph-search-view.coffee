@@ -10,7 +10,7 @@ class SearchView extends SelectListView
     @addClass('sg-search-view overlay from-top')
 
     # Throttle search requests
-    @search_throttled = _.throttle(@search, 1000)
+    @search_throttled = _.throttle(@search, 100)
 
   search: (query) ->
     me = this

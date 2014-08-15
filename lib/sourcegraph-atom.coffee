@@ -50,16 +50,20 @@ class IdentifierHighlighting
 
       highlighter = this
 
-      statusView.inprogress(command)
+      statusView.inprogress("Finding list of references in file: " + command)
       child_process.exec(command, {
           maxBuffer: 200*1024*100
         }, (error, stdout, stderr) ->
 
         if error
-          console.log(error)
-          statusView.fail(error)
+          statusView.fail("<h2>" + command + "</h2>" + stderr)
+          throw(error)
         else
-          refs = JSON.parse(stdout)
+          try
+            refs = JSON.parse(stdout)
+          catch error
+            statusView.fail("Parsing Error: " + stdout)
+            throw error
           if refs
             for ref in refs
               start = byteToPosition(highlighter.editor, ref.Start)
@@ -69,10 +73,9 @@ class IdentifierHighlighting
               marker = highlighter.editor.markBufferRange(range)
               decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
               highlighter.decorations.push(decoration)
+            statusView.success("Highlighted all refs.")
           else
-            console.log("No references in this file.")
-
-          statusView.success()
+            statusView.success("No references in this file.")
       )
 
   clearHighlights: ->
@@ -113,8 +116,8 @@ module.exports =
       # Attach status view
       statusView.attach()
 
-      #atom.workspaceView.eachEditorView (editorView) ->
-      #  new IdentifierHighlighting(editorView)
+      atom.workspaceView.eachEditorView (editorView) ->
+        new IdentifierHighlighting(editorView)
 
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
     atom.workspaceView.command "sourcegraph-atom:docs-examples", => @docsExamples true
@@ -142,8 +145,8 @@ module.exports =
       }, (error, stdout, stderr) ->
 
       if error
-        console.log(error)
-        statusView.fail(error)
+        statusView.fail(stderr)
+        throw(error)
       else
 
         result = JSON.parse(stdout)
@@ -152,7 +155,7 @@ module.exports =
         if not def
           statusView.success("Not a valid reference.")
         else
-          statusView.success()
+          statusView.success("Found def under cursor.")
           if not def.Repo
             #FIXME: Only works when atom project path matches
             atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
@@ -181,14 +184,14 @@ module.exports =
       }, (error, stdout, stderr) ->
 
       if error
-        console.log(error)
-        statusView.fail(error)
+        statusView.fail(stderr)
+        throw(error)
       else
         previousActivePane = atom.workspace.getActivePane()
         atom.workspace.open('sourcegraph-atom://docs-examples', split: 'right', searchAllPanes: true).done (examplesView) ->
           examplesView.display(JSON.parse(stdout))
           previousActivePane.activate()
-          statusView.success("Not a valid reference.")
+          statusView.success("Opened docs.")
     )
 
   searchOnSourcegraph: ->
