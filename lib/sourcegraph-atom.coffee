@@ -113,10 +113,9 @@ module.exports =
       # Attach status view
       statusView.attach()
 
-      atom.workspaceView.eachEditorView (editorView) ->
-        new IdentifierHighlighting(editorView)
+      #atom.workspaceView.eachEditorView (editorView) ->
+      #  new IdentifierHighlighting(editorView)
 
-    # TODO: Add keyboard shortcuts
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
     atom.workspaceView.command "sourcegraph-atom:docs-examples", => @docsExamples true
 

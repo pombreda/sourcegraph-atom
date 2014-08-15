@@ -1,12 +1,68 @@
 {$, $$, SelectListView} = require 'atom'
 _ = require 'underscore-plus'
 openbrowser = require './openbrowser'
+util = require 'util'
 
 module.exports =
 class SearchView extends SelectListView
   initialize: ->
     super
     @addClass('sg-search-view overlay from-top')
+
+    # Throttle search requests
+    @search_throttled = _.throttle(@search, 1000)
+
+  search: (query) ->
+    me = this
+    results = []
+    apicall = 'https://sourcegraph.com/api/search?Defs=true&People=true&Repositories=true&q=' + query
+    console.log(apicall)
+
+    $.ajax
+      url: apicall
+      success: (data) ->
+        console.log(data)
+
+        # Show repositories
+        if data.Repositories
+          for repo in data.Repositories
+            results.push({
+              text : "(Repo) " + repo.URI,
+              url : 'https://sourcegraph.com/' + repo.URI
+            })
+
+        # Shows Defs in seach bar
+        if data.Defs
+          for def in data.Defs
+            results.push({
+              text: "(Def) " + def.Name + " - " + def.Repo,
+              url : util.format("https://www.sourcegraph.com/%s/.%s/%s/.def/%s", def.Repo, def.UnitType, def.Unit, def.Path)
+            })
+
+        # Show People in bar
+        if data.People
+          for person in data.People
+            results.push({
+                text: "(Person) " + person.Name,
+                url : util.format("https://www.sourcegraph.com/%s", person.Login)
+              })
+
+        # Ability to see more results on sourcegraph.com
+        results.push({
+          text: "See More Results on Sourcegraph.com",
+          url : "https://sourcegraph.com/search?q=" + query
+        })
+
+        me.list.empty()
+        if results.length
+          for item in results
+            itemView = $(me.viewForItem(item))
+            itemView.data('select-list-item', item)
+            me.list.append(itemView)
+          me.selectItemView(me.list.find('li:first'))
+        else
+          me.setError(me.getEmptyMessage(me.items.length, results.length))
+
   getFilterKey: ->
     'eventDescription'
 
@@ -35,48 +91,7 @@ class SearchView extends SelectListView
 
   populateList: ->
     query = @getFilterQuery()
-
-
-    results = []
-    apicall = 'https://sourcegraph.com/api/search?Defs=true&People=true&Repositories=true&q=' + query
-    console.log(apicall)
-
-    me = this
-    $.ajax
-      url: apicall
-      success: (data) ->
-        console.log(data)
-        if data.Repositories
-          for repo in data.Repositories
-            results.push({
-              text : "(Repo)" + repo.URI,
-              url : 'https://sourcegraph.com/' + repo.URI
-            })
-
-        # TODO: Show Defs in seach bar
-        ###
-        for def in data.Defs
-          results.push({
-            text: def.Name
-          })###
-
-        # TODO: Show Refs in bar
-
-        results.push({
-          text: "See More Results on Sourcegraph.com",
-          url : "https://sourcegraph.com/search?q=" + query
-        })
-
-        me.list.empty()
-        if results.length
-          for item in results
-            itemView = $(me.viewForItem(item))
-            itemView.data('select-list-item', item)
-            me.list.append(itemView)
-          me.selectItemView(me.list.find('li:first'))
-        else
-          me.setError(me.getEmptyMessage(me.items.length, results.length))
-
+    @search_throttled(query)
 
   viewForItem: (result) ->
     $$ ->
