@@ -1,5 +1,3 @@
-ConditionalContextMenu = require './conditional-contextmenu'
-
 {Editor, EditorView, $, Range, Point} = require 'atom'
 
 
@@ -8,9 +6,6 @@ child_process = require 'child_process'
 util = require 'util'
 openbrowser = require './openbrowser'
 
-
-
-repeatString = (str, n) -> new Array( n + 1 ).join( str );
 
 ExamplesView = require './sourcegraph-examples-view'
 examplesView = null
@@ -21,6 +16,71 @@ statusView = null
 SearchView = require('./sourcegraph-search-view')
 searchView = null
 
+class IdentifierHighlighting
+  constructor: (@editorView) ->
+    @decorations = []
+
+    @buffer = @editorView?.getEditor()?.getBuffer()
+    return unless @buffer?
+
+    @editor = @editorView.getEditor()
+    @filePath = @editor.getPath()
+
+    # Clear highlights on modification (to prevent highlights from getting out of sync with actual text)
+    modifiedsubscription = @buffer.on 'contents-modified', =>
+      @clearHighlights()
+
+    # Re-highlight identifiers on save
+    savedsubscription = @buffer.on 'saved', =>
+      @highlight()
+
+    # When buffer is destroyed, delete this watch
+    destroyedsubscription = @buffer.once 'destroyed', =>
+      modifiedsubscription?.off()
+      savedsubscription?.off()
+
+    @highlight()
+
+  highlight: ->
+    @clearHighlights()
+
+    if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
+      command = util.format('%s api list --file "%s"', src(), @filePath)
+      console.log(command)
+
+      highlighter = this
+
+      statusView.inprogress(command)
+      child_process.exec(command, {
+          maxBuffer: 200*1024*100
+        }, (error, stdout, stderr) ->
+
+        if error
+          console.log(error)
+          statusView.fail(error)
+        else
+          refs = JSON.parse(stdout)
+          if refs
+            for ref in refs
+              start = byteToPosition(highlighter.editor, ref.Start)
+              end = byteToPosition(highlighter.editor, ref.End)
+
+              range = new Range(start, end)
+              marker = highlighter.editor.markBufferRange(range)
+              decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
+              highlighter.decorations.push(decoration)
+          else
+            console.log("No references in this file.")
+
+          statusView.success()
+      )
+
+  clearHighlights: ->
+    for decoration in @decorations
+      decoration.destroy()
+
+repeatString = (str, n) -> new Array( n + 1 ).join( str );
+
 byteToPosition = (editor, byte) ->
   # FIXME: Only works for ASCII
   editor.buffer.positionForCharacterIndex(byte)
@@ -29,44 +89,28 @@ positionToByte = (editor, point) ->
   # FIXME: Only works for ASCII
   editor.buffer.characterIndexForPosition(point)
 
+src = () ->
+  location = atom.config.get('sourcegraph-atom.srcExecutablePath').trim()
+  if location.length
+    return location
+  else
+    return "src"
+
 module.exports =
+  configDefaults:
+    srcExecutablePath: '' # Path to src executable. By default, this assumes it is already in the path
+    highlightReferencesInFile: true
+
   activate: (state) ->
     statusView = new SrclibStatusView(state.viewState)
     searchView = new SearchView(state.viewState)
 
     atom.packages.once 'activated', ->
+      # Attach status view
       statusView.attach()
 
       atom.workspaceView.eachEditorView (editorView) ->
-        editor = editorView.getEditor()
-        filePath = editor.getPath()
-        command = util.format('src api list --file "%s"', filePath)
-        console.log(command)
-
-        statusView.inprogress(command)
-        child_process.exec(command, {
-            maxBuffer: 200*1024*100
-          }, (error, stdout, stderr) ->
-
-          if error
-            console.log(error)
-            statusView.fail(error)
-          else
-            refs = JSON.parse(stdout)
-            if refs
-              for ref in refs
-                start = byteToPosition(editor, ref.Start)
-                end = byteToPosition(editor, ref.End)
-
-                range = new Range(start, end)
-                marker = editor.markBufferRange(range)
-                decoration = editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
-              #TODO: Reload highlights on file save
-            else
-              console.log("No references in this file.")
-
-            statusView.success()
-        )
+        new IdentifierHighlighting(editorView)
 
     # TODO: Add keyboard shortcuts
     atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
@@ -81,23 +125,12 @@ module.exports =
       else
         return null
 
-    ###ConditionalContextMenu.item {
-      label: 'Jump To Definition'
-      command: 'sourcegraph-atom:jump-to-definition',
-    }, => return true
-
-    ConditionalContextMenu.item {
-      label: 'See Documentation and Examples'
-      command: 'sourcegraph-atom:docs-examples',
-    }, => return true###
-
-
   jumpToDefinition: ->
     editor = atom.workspace.getActiveEditor()
     filePath = editor.getPath()
 
     offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = util.format('src api describe --file="%s" --start-byte=%d --no-examples', filePath, offset)
+    command = util.format('%s api describe --file="%s" --start-byte=%d --no-examples', src(), filePath, offset)
     console.log(command)
 
     statusView.inprogress(command)
@@ -136,7 +169,7 @@ module.exports =
     editor = atom.workspace.getActiveEditor()
     filePath = editor.getPath()
     offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = util.format('src api describe --file="%s" --start-byte=%d', filePath, offset)
+    command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)
     console.log(command)
     statusView.inprogress(command)
 
