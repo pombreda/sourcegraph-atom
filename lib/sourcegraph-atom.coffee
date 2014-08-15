@@ -102,6 +102,10 @@ module.exports =
     highlightReferencesInFile: true
 
   activate: (state) ->
+    # Ensure that Atom's path has common src locations
+    if '/usr/local/bin' not in process.env.PATH.split(":")
+      process.env.PATH += ':/usr/local/bin'
+
     statusView = new SrclibStatusView(state.viewState)
     searchView = new SearchView(state.viewState)
 
