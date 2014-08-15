@@ -1,28 +1,5 @@
-{View} = require 'atom'
-
-
-current_status = {
-  content: ""
-  type: ""
-}
-
-class StatusInfo extends View
-  @content: ->
-    @div tabindex: -1, class: 'srclib-status-info overlay from-bottom from-left native-key-bindings', =>
-      @h1 current_status.type
-      @raw current_status.content
-
-  initialize: ->
-    atom.workspaceView.prepend(this)
-
-    @subscribe this, 'focusout', =>
-      # during the focusout event body is the active element. Use nextTick to determine what the actual active element will be
-      process.nextTick =>
-        @detach() unless @is(':focus') or @find(':focus').length > 0
-
-    @subscribe atom.workspaceView, 'core:cancel', => @detach()
-
-    @focus()
+{$, View} = require 'atom'
+{MessagePanelView, PlainMessageView} = require 'atom-message-panel'
 
 module.exports =
 class SrclibStatusView extends View
@@ -37,31 +14,71 @@ class SrclibStatusView extends View
     atom.workspaceView.statusBar.appendLeft(this)
 
   initialize: ->
-    @on 'click', ->
-      new StatusInfo()
-
-  message: (type, content) ->
-    current_status = {
-      type,
-      content
-    }
+    @messages = new MessagePanelView title: '<img src="atom://sourcegraph-atom/images/nobuild.svg"></img> srclib status', rawTitle: true
+    @on 'click', =>
+      @messages.attach()
 
   serialize: ->
 
   reset: ->
-    @status.removeClass("build-success").removeClass("build-fail").removeClass("build-inprogress")
+    @status.removeClass("build-success").removeClass("build-warn").removeClass("build-fail").removeClass("build-inprogress")
 
-  inprogress: (html = "") ->
+  inprogress: (html) ->
     @reset()
     @status.addClass("build-inprogress")
-    @message("Running Command", html)
 
-  fail: (html = "") ->
+    if atom.config.get('sourcegraph-atom.logStatusToConsole')
+      console.log(html)
+
+    if html
+      @messages.add(new PlainMessageView({
+        message: html,
+        className: 'text-info'
+      }))
+
+  error: (html) ->
     @reset()
     @status.addClass("build-fail")
-    @message("Command Failed", html)
 
-  success: (html = "") ->
+    if atom.config.get('sourcegraph-atom.openMessagePanelOnError')
+      @messages.attach()
+
+    if html
+      @messages.add(new PlainMessageView({
+        message: html,
+        className: 'text-error'
+      }))
+
+    if atom.config.get('sourcegraph-atom.logStatusToConsole')
+      console.error(html)
+
+  warn: (html) ->
+    @reset()
+    @status.addClass("build-warn")
+
+
+
+    if html
+      @messages.add(new PlainMessageView({
+        message: html,
+        className: 'text-warning'
+      }))
+
+    if atom.config.get('sourcegraph-atom.openMessagePanelOnError')
+      @messages.attach()
+
+    if atom.config.get('sourcegraph-atom.logStatusToConsole')
+      console.warn(html)
+
+  success: (html) ->
     @reset()
     @status.addClass("build-success")
-    @message("Command Succeded", html)
+
+    if html
+      @messages.add(new PlainMessageView({
+        message: html,
+        className: 'text-success'
+      }))
+
+    if atom.config.get('sourcegraph-atom.logStatusToConsole')
+      console.log(html)

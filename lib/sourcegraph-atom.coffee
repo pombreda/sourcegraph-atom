@@ -56,13 +56,12 @@ class IdentifierHighlighting
         }, (error, stdout, stderr) ->
 
         if error
-          statusView.fail("<h2>" + command + "</h2>" + stderr)
-          throw(error)
+          statusView.error(command + ": " + stderr)
         else
           try
             refs = JSON.parse(stdout)
           catch error
-            statusView.fail("Parsing Error: " + stdout)
+            statusView.error("Parsing Error: " + stdout)
             throw error
           if refs
             for ref in refs
@@ -75,7 +74,7 @@ class IdentifierHighlighting
               highlighter.decorations.push(decoration)
             statusView.success("Highlighted all refs.")
           else
-            statusView.success("No references in this file.")
+            statusView.warn("No references in this file.")
       )
 
   clearHighlights: ->
@@ -103,6 +102,8 @@ module.exports =
   configDefaults:
     srcExecutablePath: '' # Path to src executable. By default, this assumes it is already in the path
     highlightReferencesInFile: true
+    openMessagePanelOnError: true
+    logStatusToConsole: false
 
   activate: (state) ->
     # Ensure that Atom's path has common src locations
@@ -139,24 +140,23 @@ module.exports =
     command = util.format('%s api describe --file="%s" --start-byte=%d --no-examples', src(), filePath, offset)
     console.log(command)
 
-    statusView.inprogress(command)
+    statusView.inprogress("Jump to Definition: " + command)
     child_process.exec(command, {
         maxBuffer: 200*1024*100
       }, (error, stdout, stderr) ->
 
       if error
-        statusView.fail(stderr)
-        throw(error)
+        statusView.error(command + ": " + stderr)
       else
 
         result = JSON.parse(stdout)
 
         def = result.Def
         if not def
-          statusView.success("Not a valid reference.")
+          statusView.warn("No reference found under cursor.")
         else
-          statusView.success("Found def under cursor.")
           if not def.Repo
+            statusView.success("Successfully resolved to local definition.")
             #FIXME: Only works when atom project path matches
             atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
               offset = byteToPosition(editor, def.DefStart)
@@ -165,6 +165,7 @@ module.exports =
               editor.scrollToCursorPosition()
             )
           else
+            statusView.success("Successfully resolved to remote definition.")
             # TODO: Resolve to local file, for now, just opens sourcegraph.com
             url = util.format("http://www.sourcegraph.com/%s/.%s/%s/.def/%s", def.Repo, def.UnitType, def.Unit, def.Path)
             openbrowser(url)
@@ -177,21 +178,23 @@ module.exports =
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)
     console.log(command)
-    statusView.inprogress(command)
+    statusView.inprogress("Documentation and Examples:" + command)
 
     child_process.exec(command, {
         maxBuffer: 200*1024*100
       }, (error, stdout, stderr) ->
-
       if error
-        statusView.fail(stderr)
-        throw(error)
+        statusView.error(command + ": " + stderr)
       else
-        previousActivePane = atom.workspace.getActivePane()
-        atom.workspace.open('sourcegraph-atom://docs-examples', split: 'right', searchAllPanes: true).done (examplesView) ->
-          examplesView.display(JSON.parse(stdout))
-          previousActivePane.activate()
-          statusView.success("Opened docs.")
+        result = JSON.parse(stdout)
+        if not result.Def
+          statusView.warn("No reference found under cursor.")
+        else
+          previousActivePane = atom.workspace.getActivePane()
+          atom.workspace.open('sourcegraph-atom://docs-examples', split: 'right', searchAllPanes: true).done (examplesView) ->
+            examplesView.display(result)
+            previousActivePane.activate()
+            statusView.success("Opened docs panel")
     )
 
   searchOnSourcegraph: ->

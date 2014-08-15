@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "mustache" : "0.8.2",
-    "underscore-plus" : "1.x"
+    "underscore-plus" : "1.x",
+    "atom-message-panel": ">=1.1.1"
   }
 }
