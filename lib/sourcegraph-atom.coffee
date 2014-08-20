@@ -46,7 +46,6 @@ class IdentifierHighlighting
 
     if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
       command = util.format('%s api list --file "%s"', src(), @filePath)
-      console.log(command)
 
       highlighter = this
 
@@ -138,7 +137,6 @@ module.exports =
 
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('%s api describe --file="%s" --start-byte=%d --no-examples', src(), filePath, offset)
-    console.log(command)
 
     statusView.inprogress("Jump to Definition: " + command)
     child_process.exec(command, {
@@ -158,7 +156,7 @@ module.exports =
           if not def.Repo
             statusView.success("Successfully resolved to local definition.")
             #FIXME: Only works when atom project path matches
-            atom.workspace.open( path.join(atom.project.getPath(), def.File)).then( (editor) ->
+            atom.workspace.open( def.File ).then( (editor) ->
               offset = byteToPosition(editor, def.DefStart)
 
               editor.setCursorBufferPosition(offset)
@@ -177,7 +175,6 @@ module.exports =
     filePath = editor.getPath()
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)
-    console.log(command)
     statusView.inprogress("Documentation and Examples:" + command)
 
     child_process.exec(command, {
