@@ -51,7 +51,8 @@ class IdentifierHighlighting
 
       statusView.inprogress("Finding list of references in file: " + command)
       child_process.exec(command, {
-          maxBuffer: 200*1024*100
+          maxBuffer: 200*1024*100,
+          env: getEnv()
         }, (error, stdout, stderr) ->
 
         if error
@@ -97,12 +98,38 @@ src = () ->
   else
     return "src"
 
+getEnv = () ->
+  goPath = atom.config.get('sourcegraph-atom.goPath').trim()
+  if goPath.length
+    process.env.GOPATH = goPath
+  goRoot = atom.config.get('sourcegraph-atom.goRoot').trim()
+  if goRoot.length
+    process.env.GOROOT = goRoot
+  return process.env
+
 module.exports =
-  configDefaults:
-    srcExecutablePath: '' # Path to src executable. By default, this assumes it is already in the path
-    highlightReferencesInFile: true
-    openMessagePanelOnError: true
-    logStatusToConsole: false
+  config:
+    goPath:
+      type: 'string'
+      default: ''
+      description: 'Path to your $GOPATH. Uses $GOPATH from env if not specified.'
+    goRoot:
+      type: 'string'
+      default: ''
+      description: 'Path to your $GOROOT. Uses $GOROOT from env if not specified. Most people won\'t need to set this, even if their $GOROOT is unset. See http://dave.cheney.net/2013/06/14/you-dont-need-to-set-goroot-really'
+    srcExecutablePath:
+      type: 'string'
+      default: ''
+      description: 'Path to src executable. By default, this assumes it is already in the path'
+    highlightReferencesInFile:
+      type: 'boolean'
+      default: true
+    openMessagePanelOnError:
+      type: 'boolean'
+      default: true
+    logStatusToConsole:
+      type: 'boolean'
+      default: false
 
   activate: (state) ->
     # Ensure that Atom's path has common src locations
@@ -140,7 +167,8 @@ module.exports =
 
     statusView.inprogress("Jump to Definition: " + command)
     child_process.exec(command, {
-        maxBuffer: 200*1024*100
+        maxBuffer: 200*1024*100,
+        env: getEnv()
       }, (error, stdout, stderr) ->
 
       if error
@@ -178,7 +206,8 @@ module.exports =
     statusView.inprogress("Documentation and Examples:" + command)
 
     child_process.exec(command, {
-        maxBuffer: 200*1024*100
+        maxBuffer: 200*1024*100,
+        env: getEnv()
       }, (error, stdout, stderr) ->
       if error
         statusView.error(command + ": " + stderr)
