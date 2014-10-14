@@ -105,6 +105,10 @@ getEnv = () ->
   goRoot = atom.config.get('sourcegraph-atom.goRoot').trim()
   if goRoot.length
     process.env.GOROOT = goRoot
+  path = atom.config.get('sourcegraph-atom.path').trim()
+  for p in path.split(":")
+    if p not in process.env.PATH.split(":")
+      process.env.PATH += ':' + p
   return process.env
 
 module.exports =
@@ -117,6 +121,10 @@ module.exports =
       type: 'string'
       default: ''
       description: 'Path to your $GOROOT. Uses $GOROOT from env if not specified. Most people won\'t need to set this, even if their $GOROOT is unset. See http://dave.cheney.net/2013/06/14/you-dont-need-to-set-goroot-really'
+    path:
+      type: 'string'
+      default: ''
+      description: 'Add items to your PATH, separated by \':\''
     srcExecutablePath:
       type: 'string'
       default: ''
