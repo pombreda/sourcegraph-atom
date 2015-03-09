@@ -1,4 +1,4 @@
-TestAtom = require '../lib/test-atom'
+SourcegraphAtom = require '../lib/sourcegraph-atom'
 
 # Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
 #
