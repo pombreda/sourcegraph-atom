@@ -45,7 +45,7 @@ class ExamplesView extends ScrollView
   getTitle: ->
     return "Sourcegraph Examples"
 
-  getUri: ->
+  getURI: ->
     return 'sourcegraph-atom://docs-examples'
 
   getIconName: ->

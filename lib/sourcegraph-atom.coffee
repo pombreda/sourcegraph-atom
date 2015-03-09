@@ -174,7 +174,7 @@ module.exports =
     @statusBarTile = null
 
   jumpToDefinition: ->
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
 
     offset = positionToByte(editor, editor.getCursorBufferPosition())
@@ -214,7 +214,7 @@ module.exports =
     )
 
   docsExamples: ->
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)
