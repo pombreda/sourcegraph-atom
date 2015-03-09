@@ -69,6 +69,7 @@ class IdentifierHighlighting
               end = byteToPosition(highlighter.editor, ref.End)
 
               range = new Range(start, end)
+              # FIXME: Quite sure you need to keep track of markers and destroy them, not the decorations.
               marker = highlighter.editor.markBufferRange(range)
               decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "sourcegraph-identifier"})
               highlighter.decorations.push(decoration)
@@ -150,10 +151,10 @@ module.exports =
       atom.workspace.observeTextEditors (editor) ->
         new IdentifierHighlighting(editor)
 
-    atom.commands.add 'atom-workspace',
-      'sourcegraph-atom:jump-to-definition': => @jumpToDefinition,
-      'sourcegraph-atom:docs-examples': => @docsExamples,
-      'sourcegraph-atom:search-on-sourcegraph': => @searchOnSourcegraph
+    @commands = atom.commands.add 'atom-workspace',
+      'sourcegraph-atom:jump-to-definition': => @jumpToDefinition()
+      'sourcegraph-atom:docs-examples': => @docsExamples()
+      'sourcegraph-atom:search-on-sourcegraph': => @searchOnSourcegraph()
 
     atom.workspace.addOpener (uri) ->
       console.log(uri)
@@ -168,6 +169,7 @@ module.exports =
     @statusBarTile = statusBar.addLeftTile(item: statusView, priority: 100)
 
   deactivate: ->
+    @commands?.dispose()
     @statusBarTile?.destroy()
     @statusBarTile = null
 
