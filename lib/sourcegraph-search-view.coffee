@@ -1,4 +1,4 @@
-{$, $$, SelectListView} = require 'atom'
+{$, $$, SelectListView} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
 openbrowser = require './openbrowser'
 util = require 'util'
@@ -7,7 +7,7 @@ module.exports =
 class SearchView extends SelectListView
   initialize: ->
     super
-    @addClass('sg-search-view overlay from-top')
+    @addClass('sg-search-view')
 
     # Throttle search requests
     @search_throttled = _.throttle(@search, 100)
@@ -66,19 +66,20 @@ class SearchView extends SelectListView
   getFilterKey: ->
     'eventDescription'
 
+  cancelled: ->
+    @hide()
+
   toggle: ->
-    if @hasParent()
+    if @panel?.isVisible()
       @cancel()
     else
-      @attach()
+      @show()
 
-  attach: ->
+  show: ->
+    @panel ?= atom.workspace.addModalPanel(item: this)
+    @panel.show()
+
     @storeFocusedElement()
-
-    if @previouslyFocusedElement[0] and @previouslyFocusedElement[0] isnt document.body
-      @eventElement = @previouslyFocusedElement
-    else
-      @eventElement = atom.workspaceView
 
     events = []
     for eventName, eventDescription of _.extend($(window).events(), @eventElement.events())
@@ -86,7 +87,6 @@ class SearchView extends SelectListView
     events = _.sortBy(events, 'eventDescription')
     @setItems(events)
 
-    atom.workspaceView.append(this)
     @focusFilterEditor()
 
   populateList: ->
@@ -102,3 +102,6 @@ class SearchView extends SelectListView
     @cancel()
     if result.url
       openbrowser(result.url)
+
+  hide: ->
+    @panel?.hide()

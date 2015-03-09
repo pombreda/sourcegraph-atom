@@ -1,4 +1,4 @@
-{$, View} = require 'atom'
+{View} = require 'atom-space-pen-views'
 {MessagePanelView, PlainMessageView} = require 'atom-message-panel'
 
 module.exports =
@@ -9,12 +9,8 @@ class SrclibStatusView extends View
         @img class: 'status-image'
         @text "srclib"
 
-  attach: ->
-    console.log("Attaching status view to status bar...")
-    atom.workspaceView.statusBar.appendLeft(this)
-
   initialize: ->
-    @messages = new MessagePanelView title: '<img src="atom://sourcegraph-atom/images/nobuild.svg"></img> srclib status', rawTitle: true
+    @messages = new MessagePanelView title: '<img src="atom://sourcegraph-atom/assets/nobuild.svg"></img> srclib status', rawTitle: true
     @on 'click', =>
       @messages.attach()
 
