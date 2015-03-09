@@ -1,3 +1,7 @@
 ## 0.1.0 - First Release
-* Every feature added
-* Every bug fixed
+ * Fix Atom deprecation warnings
+ * Update for Atom `1.0` API.
+
+## 0.0.1 - First Release
+ * Every feature added
+ * Every bug fixed
