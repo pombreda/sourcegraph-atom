@@ -1,4 +1,5 @@
-{Editor, EditorView, $, Range, Point} = require 'atom'
+{Editor, Range, Point} = require 'atom'
+{TextEditorView} = require 'atom-space-pen-views'
 
 
 path = require 'path'
@@ -17,21 +18,20 @@ SearchView = require('./sourcegraph-search-view')
 searchView = null
 
 class IdentifierHighlighting
-  constructor: (@editorView) ->
+  constructor: (@editor) ->
     @decorations = []
 
-    @buffer = @editorView?.getEditor()?.getBuffer()
+    @buffer = @editor?.getBuffer()
     return unless @buffer?
 
-    @editor = @editorView.getEditor()
     @filePath = @editor.getPath()
 
     # Clear highlights on modification (to prevent highlights from getting out of sync with actual text)
-    modifiedsubscription = @buffer.on 'contents-modified', =>
+    modifiedsubscription = @buffer.onDidStopChanging =>
       @clearHighlights()
 
     # Re-highlight identifiers on save
-    savedsubscription = @buffer.on 'saved', =>
+    savedsubscription = @buffer.onDidSave =>
       @highlight()
 
     # When buffer is destroyed, delete this watch
@@ -69,8 +69,9 @@ class IdentifierHighlighting
               end = byteToPosition(highlighter.editor, ref.End)
 
               range = new Range(start, end)
+              # FIXME: Quite sure you need to keep track of markers and destroy them, not the decorations.
               marker = highlighter.editor.markBufferRange(range)
-              decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "identifier"})
+              decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "sourcegraph-identifier"})
               highlighter.decorations.push(decoration)
             statusView.success("Highlighted all refs.")
           else
@@ -144,30 +145,36 @@ module.exports =
     if '/usr/local/bin' not in process.env.PATH.split(":")
       process.env.PATH += ':/usr/local/bin'
 
-    statusView = new SrclibStatusView(state.viewState)
     searchView = new SearchView(state.viewState)
 
-    atom.packages.once 'activated', ->
-      # Attach status view
-      statusView.attach()
+    atom.packages.onDidActivateInitialPackages ->
+      atom.workspace.observeTextEditors (editor) ->
+        new IdentifierHighlighting(editor)
 
-      atom.workspaceView.eachEditorView (editorView) ->
-        new IdentifierHighlighting(editorView)
+    @commands = atom.commands.add 'atom-workspace',
+      'sourcegraph-atom:jump-to-definition': => @jumpToDefinition()
+      'sourcegraph-atom:docs-examples': => @docsExamples()
+      'sourcegraph-atom:search-on-sourcegraph': => @searchOnSourcegraph()
 
-    atom.workspaceView.command "sourcegraph-atom:jump-to-definition", => @jumpToDefinition true
-    atom.workspaceView.command "sourcegraph-atom:docs-examples", => @docsExamples true
-
-    atom.workspaceView.command "sourcegraph-atom:search-on-sourcegraph", => @searchOnSourcegraph true
-
-    atom.workspace.registerOpener (uri) ->
+    atom.workspace.addOpener (uri) ->
       console.log(uri)
       if uri is 'sourcegraph-atom://docs-examples'
         return new ExamplesView()
       else
         return null
 
+  consumeStatusBar: (statusBar) ->
+    statusView = new SrclibStatusView()
+    # Attach status view
+    @statusBarTile = statusBar.addLeftTile(item: statusView, priority: 100)
+
+  deactivate: ->
+    @commands?.dispose()
+    @statusBarTile?.destroy()
+    @statusBarTile = null
+
   jumpToDefinition: ->
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
 
     offset = positionToByte(editor, editor.getCursorBufferPosition())
@@ -207,7 +214,7 @@ module.exports =
     )
 
   docsExamples: ->
-    editor = atom.workspace.getActiveEditor()
+    editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
     offset = positionToByte(editor, editor.getCursorBufferPosition())
     command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)

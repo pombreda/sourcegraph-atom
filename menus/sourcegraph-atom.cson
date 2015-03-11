@@ -1,18 +1,26 @@
 # See https://atom.io/docs/latest/creating-a-package#menus for more details
 'context-menu':
-  '.overlayer':
-      'Jump To Definition': 'sourcegraph-atom:jump-to-definition'
-      'See Documentation and Examples' : 'sourcegraph-atom:docs-examples'
-
-'menu' : [
-  'label' : 'Packages',
-  'submenu' : [
-    'label' : 'Sourcegraph'
-    'submenu' : [
-      {
-        'label' : 'Search on Sourcgraph',
-        'command' : 'sourcegraph-atom:search-on-sourcegraph'
-      }
-    ]
+  'atom-text-editor': [
+    {
+      'label': 'Jump To Definition',
+      'command': 'sourcegraph-atom:jump-to-definition'
+    },
+    {
+      'label': 'See Documentation and Examples',
+      'command': 'sourcegraph-atom:docs-examples'
+    }
   ]
+'menu': [
+  {
+    'label': 'Packages',
+    'submenu': [
+      'label': 'Sourcegraph'
+      'submenu': [
+        {
+          'label': 'Search on Sourcgraph',
+          'command': 'sourcegraph-atom:search-on-sourcegraph'
+        }
+      ]
+    ]
+  }
 ]

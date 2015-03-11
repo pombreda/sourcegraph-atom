@@ -6,7 +6,7 @@ module.exports = (url) ->
 
   switch os.platform()
     when "linux"
-      exec('x-www-browser "' + url + '"')
+      exec('xdg-open "' + url + '"')
     when "darwin"
       # TODO: Confirm that this works on Mac
       exec('open "' + url + '"')

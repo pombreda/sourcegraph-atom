@@ -1,4 +1,4 @@
-{$, $$$, ScrollView} = require 'atom'
+{ScrollView} = require 'atom-space-pen-views'
 
 _ = require 'underscore-plus'
 
@@ -45,7 +45,7 @@ class ExamplesView extends ScrollView
   getTitle: ->
     return "Sourcegraph Examples"
 
-  getUri: ->
+  getURI: ->
     return 'sourcegraph-atom://docs-examples'
 
   getIconName: ->
