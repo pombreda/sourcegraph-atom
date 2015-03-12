@@ -153,7 +153,7 @@ module.exports =
 
     @commands = atom.commands.add 'atom-workspace',
       'sourcegraph-atom:jump-to-definition': => @jumpToDefinition()
-      'sourcegraph-atom:docs-examples': => @docsExamples()
+      'sourcegraph-atom:show-documentation-and-examples': => @docsExamples()
       'sourcegraph-atom:search-on-sourcegraph': => @searchOnSourcegraph()
 
     atom.workspace.addOpener (uri) ->
