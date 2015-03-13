@@ -6,8 +6,8 @@
       'command': 'sourcegraph-atom:jump-to-definition'
     },
     {
-      'label': 'See Documentation and Examples',
-      'command': 'sourcegraph-atom:docs-examples'
+      'label': 'Show Documentation and Examples',
+      'command': 'sourcegraph-atom:show-documentation-and-examples'
     }
   ]
 'menu': [
