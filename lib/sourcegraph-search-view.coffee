@@ -10,22 +10,25 @@ class SearchView extends SelectListView
     @addClass('sg-search-view')
 
     # Throttle search requests
-    @search_throttled = _.throttle(@search, 100)
+    @search_throttled = _.throttle(@search, 1000)
 
   search: (query) ->
     me = this
     results = []
-    apicall = 'https://sourcegraph.com/api/search?Defs=true&People=true&Repositories=true&q=' + query
+    apicall = 'https://sourcegraph.com/api/search?Defs=true&People=true&Repos=true&q=' + query
     console.log(apicall)
 
-    $.ajax
+    # If old request is still processing, abort it.
+    @xhr?.abort()
+
+    @xhr = $.ajax
       url: apicall
-      success: (data) ->
+      success: (data) =>
         console.log(data)
 
         # Show repositories
-        if data.Repositories
-          for repo in data.Repositories
+        if data.Repos
+          for repo in data.Repos
             results.push({
               text : "(Repo) " + repo.URI,
               url : 'https://sourcegraph.com/' + repo.URI
@@ -62,6 +65,7 @@ class SearchView extends SelectListView
           me.selectItemView(me.list.find('li:first'))
         else
           me.setError(me.getEmptyMessage(me.items.length, results.length))
+        @xhr = null
 
   getFilterKey: ->
     'eventDescription'
@@ -82,9 +86,6 @@ class SearchView extends SelectListView
     @storeFocusedElement()
 
     events = []
-    for eventName, eventDescription of _.extend($(window).events(), @eventElement.events())
-      events.push({eventName, eventDescription}) if eventDescription
-    events = _.sortBy(events, 'eventDescription')
     @setItems(events)
 
     @focusFilterEditor()
