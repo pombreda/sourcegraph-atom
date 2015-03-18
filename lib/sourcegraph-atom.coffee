@@ -19,7 +19,7 @@ searchView = null
 
 class IdentifierHighlighting
   constructor: (@editor) ->
-    @decorations = []
+    @markers = []
 
     @buffer = @editor?.getBuffer()
     return unless @buffer?
@@ -59,28 +59,27 @@ class IdentifierHighlighting
           statusView.error(command + ": " + stderr)
         else
           try
-            refs = JSON.parse(stdout)
+            output = JSON.parse(stdout)
           catch error
             statusView.error("Parsing Error: " + stdout)
             throw error
-          if refs
-            for ref in refs
+          if output?.Refs
+            for ref in output.Refs
               start = byteToPosition(highlighter.editor, ref.Start)
               end = byteToPosition(highlighter.editor, ref.End)
 
               range = new Range(start, end)
-              # FIXME: Quite sure you need to keep track of markers and destroy them, not the decorations.
               marker = highlighter.editor.markBufferRange(range)
               decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "sourcegraph-identifier"})
-              highlighter.decorations.push(decoration)
+              highlighter.markers.push(marker)
             statusView.success("Highlighted all refs.")
           else
             statusView.warn("No references in this file.")
       )
 
   clearHighlights: ->
-    for decoration in @decorations
-      decoration.destroy()
+    for marker in @markers
+      marker.destroy()
 
 repeatString = (str, n) -> new Array( n + 1 ).join( str );
 
