@@ -3,7 +3,8 @@
 _ = require 'underscore-plus'
 
 mustache = require 'mustache'
-examplesTemplate = """
+# TODO: Get rid of this monstrosity.
+examplesTemplate = '''
 <h1>{{Def.Name}}</h1>
 {{{Def.DocHTML}}}
 
@@ -22,7 +23,7 @@ examplesTemplate = """
   <pre><code>{{{SrcHTML}}}</code></pre>
   <hr>
 {{/Examples}}
-"""
+'''
 
 module.exports =
 class ExamplesView extends ScrollView
@@ -33,7 +34,7 @@ class ExamplesView extends ScrollView
 
   display: (data) ->
     data.Def.DataPairs = _.pairs(data.Def.Data)
-    data.stringify = () ->
+    data.stringify = ->
       if this instanceof String
         return this
       else
@@ -43,13 +44,13 @@ class ExamplesView extends ScrollView
     @html(mustache.render(examplesTemplate, data))
 
   getTitle: ->
-    return "Sourcegraph Examples"
+    'Sourcegraph Examples'
 
   getURI: ->
-    return 'sourcegraph-atom://docs-examples'
+    'sourcegraph-atom://docs-examples'
 
   getIconName: ->
-    "markdown"
+    'markdown'
 
   getPath: ->
-    return 'sourcegraph-atom://docs-examples'
+    'sourcegraph-atom://docs-examples'

@@ -4,7 +4,6 @@
 
 path = require 'path'
 child_process = require 'child_process'
-util = require 'util'
 openbrowser = require './openbrowser'
 
 
@@ -26,7 +25,8 @@ class IdentifierHighlighting
 
     @filePath = @editor.getPath()
 
-    # Clear highlights on modification (to prevent highlights from getting out of sync with actual text)
+    # Clear highlights on modification to
+    # prevent highlights from getting out of sync with actual text.
     modifiedsubscription = @buffer.onDidStopChanging =>
       @clearHighlights()
 
@@ -35,7 +35,7 @@ class IdentifierHighlighting
       @highlight()
 
     # When buffer is destroyed, delete this watch
-    destroyedsubscription = @buffer.once 'destroyed', =>
+    destroyedsubscription = @buffer.once 'destroyed', ->
       modifiedsubscription?.off()
       savedsubscription?.off()
 
@@ -45,23 +45,24 @@ class IdentifierHighlighting
     @clearHighlights()
 
     if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
-      command = util.format('%s api list --file "%s"', src(), @filePath)
+      command = "#{src()} api list
+                  --file \"#{@filePath}\""
 
       highlighter = this
 
-      statusView.inprogress("Finding list of references in file: " + command)
+      statusView.inprogress("Finding list of references in file: #{command}")
       child_process.exec(command, {
-          maxBuffer: 200*1024*100,
-          env: getEnv()
-        }, (error, stdout, stderr) ->
+        maxBuffer: 200 * 1024 * 100,
+        env: getEnv()
+      }, (error, stdout, stderr) ->
 
         if error
-          statusView.error(command + ": " + stderr)
+          statusView.error("#{command}: #{stderr}")
         else
           try
             output = JSON.parse(stdout)
           catch error
-            statusView.error("Parsing Error: " + stdout)
+            statusView.error("Parsing Error: #{stdout}")
             throw error
           if output?.Refs
             for ref in output.Refs
@@ -70,18 +71,21 @@ class IdentifierHighlighting
 
               range = new Range(start, end)
               marker = highlighter.editor.markBufferRange(range)
-              decoration = highlighter.editor.decorateMarker(marker, {type : 'highlight', class : "sourcegraph-identifier"})
+              decoration = highlighter.editor.decorateMarker(marker,
+               type: 'highlight',
+               class: 'sourcegraph-identifier'
+              )
               highlighter.markers.push(marker)
-            statusView.success("Highlighted all refs.")
+            statusView.success('Highlighted all refs.')
           else
-            statusView.warn("No references in this file.")
+            statusView.warn('No references in this file.')
       )
 
   clearHighlights: ->
     for marker in @markers
       marker.destroy()
 
-repeatString = (str, n) -> new Array( n + 1 ).join( str );
+repeatString = (str, n) -> new Array( n + 1 ).join( str )
 
 byteToPosition = (editor, byte) ->
   # FIXME: Only works for ASCII
@@ -91,14 +95,11 @@ positionToByte = (editor, point) ->
   # FIXME: Only works for ASCII
   editor.buffer.characterIndexForPosition(point)
 
-src = () ->
+src = ->
   location = atom.config.get('sourcegraph-atom.srcExecutablePath').trim()
-  if location.length
-    return location
-  else
-    return "src"
+  return if location.length then location else 'src'
 
-getEnv = () ->
+getEnv = ->
   goPath = atom.config.get('sourcegraph-atom.goPath').trim()
   if goPath.length
     process.env.GOPATH = goPath
@@ -106,8 +107,8 @@ getEnv = () ->
   if goRoot.length
     process.env.GOROOT = goRoot
   path = atom.config.get('sourcegraph-atom.path').trim()
-  for p in path.split(":")
-    if p not in process.env.PATH.split(":")
+  for p in path.split(':')
+    if p not in process.env.PATH.split(':')
       process.env.PATH += ':' + p
   return process.env
 
@@ -116,11 +117,19 @@ module.exports =
     goPath:
       type: 'string'
       default: ''
-      description: 'Path to your $GOPATH. Uses $GOPATH from env if not specified.'
+      description: '
+        Path to your $GOPATH.
+        Uses $GOPATH from env if not specified.
+      '
     goRoot:
       type: 'string'
       default: ''
-      description: 'Path to your $GOROOT. Uses $GOROOT from env if not specified. Most people won\'t need to set this, even if their $GOROOT is unset. See http://dave.cheney.net/2013/06/14/you-dont-need-to-set-goroot-really'
+      description: '
+        Path to your $GOROOT.
+        Uses $GOROOT from env if not specified.
+        Most people won\'t need to set this, even if their $GOROOT is unset.
+        See http://dave.cheney.net/2013/06/14/you-dont-need-to-set-goroot-really
+      '
     path:
       type: 'string'
       default: ''
@@ -128,7 +137,10 @@ module.exports =
     srcExecutablePath:
       type: 'string'
       default: ''
-      description: 'Path to src executable. By default, this assumes it is already in the path'
+      description: '
+        Path to src executable. By default, this assumes
+        it is already in the path.
+      '
     highlightReferencesInFile:
       type: 'boolean'
       default: true
@@ -141,7 +153,7 @@ module.exports =
 
   activate: (state) ->
     # Ensure that Atom's path has common src locations
-    if '/usr/local/bin' not in process.env.PATH.split(":")
+    if '/usr/local/bin' not in process.env.PATH.split(':')
       process.env.PATH += ':/usr/local/bin'
 
     searchView = new SearchView(state.viewState)
@@ -177,38 +189,41 @@ module.exports =
     filePath = editor.getPath()
 
     offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = util.format('%s api describe --file="%s" --start-byte=%d --no-examples', src(), filePath, offset)
+    command = "#{src()} api describe
+                --file=\"#{filePath}\"
+                --start-byte=#{offset}
+                --no-examples"
 
-    statusView.inprogress("Jump to Definition: " + command)
-    child_process.exec(command, {
-        maxBuffer: 200*1024*100,
-        env: getEnv()
-      }, (error, stdout, stderr) ->
-
-      if error
-        statusView.error(command + ": " + stderr)
-      else
-
-        result = JSON.parse(stdout)
-
-        def = result.Def
-        if not def
-          statusView.warn("No reference found under cursor.")
+    statusView.inprogress("Jump to Definition: #{command}")
+    child_process.exec(command,
+      maxBuffer: 200 * 1024 * 100,
+      env: getEnv(),
+      (error, stdout, stderr) ->
+        if error
+          statusView.error("#{command}: #{stderr}")
         else
-          if not def.Repo
-            statusView.success("Successfully resolved to local definition.")
-            #FIXME: Only works when atom project path matches
-            atom.workspace.open( def.File ).then( (editor) ->
-              offset = byteToPosition(editor, def.DefStart)
 
-              editor.setCursorBufferPosition(offset)
-              editor.scrollToCursorPosition()
-            )
+          result = JSON.parse(stdout)
+
+          def = result.Def
+          if not def
+            statusView.warn('No reference found under cursor.')
           else
-            statusView.success("Successfully resolved to remote definition.")
-            # TODO: Resolve to local file, for now, just opens sourcegraph.com
-            url = util.format("http://www.sourcegraph.com/%s/.%s/%s/.def/%s", def.Repo, def.UnitType, def.Unit, def.Path)
-            openbrowser(url)
+            if not def.Repo
+              statusView.success('Successfully resolved to local definition.')
+              #FIXME: Only works when atom project path matches
+              atom.workspace.open( def.File ).then( (editor) ->
+                offset = byteToPosition(editor, def.DefStart)
+
+                editor.setCursorBufferPosition(offset)
+                editor.scrollToCursorPosition()
+              )
+            else
+              statusView.success('Successfully resolved to remote definition.')
+              # TODO: Resolve to local file, for now, just opens sourcegraph.com
+              url = "http://www.sourcegraph.com/\
+                    #{def.Repo}/#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
+              openbrowser(url)
 
     )
 
@@ -216,25 +231,32 @@ module.exports =
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
     offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = util.format('%s api describe --file="%s" --start-byte=%d',src(), filePath, offset)
-    statusView.inprogress("Documentation and Examples:" + command)
+    command = "#{src()} api describe
+                --file=\"#{filePath}\"
+                --start-byte=#{offset}"
+    statusView.inprogress("Documentation and Examples: #{command}")
 
-    child_process.exec(command, {
-        maxBuffer: 200*1024*100,
-        env: getEnv()
-      }, (error, stdout, stderr) ->
-      if error
-        statusView.error(command + ": " + stderr)
-      else
-        result = JSON.parse(stdout)
-        if not result.Def
-          statusView.warn("No reference found under cursor.")
+    child_process.exec(command,
+      maxBuffer: 200 * 1024 * 100,
+      env: getEnv()
+      (error, stdout, stderr) ->
+        if error
+          statusView.error("#{command}: #{stderr}")
         else
-          previousActivePane = atom.workspace.getActivePane()
-          atom.workspace.open('sourcegraph-atom://docs-examples', split: 'right', searchAllPanes: true).done (examplesView) ->
-            examplesView.display(result)
-            previousActivePane.activate()
-            statusView.success("Opened docs panel")
+          result = JSON.parse(stdout)
+          if not result.Def
+            statusView.warn('No reference found under cursor.')
+          else
+            previousActivePane = atom.workspace.getActivePane()
+            atom.workspace
+              .open('sourcegraph-atom://docs-examples',
+                split: 'right',
+                searchAllPanes: true
+              )
+              .done (examplesView) ->
+                examplesView.display(result)
+                previousActivePane.activate()
+                statusView.success('Opened docs panel')
     )
 
   searchOnSourcegraph: ->

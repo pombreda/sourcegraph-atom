@@ -7,21 +7,28 @@ class SrclibStatusView extends View
     @div class: 'inline-block', =>
       @span class: 'build-status', outlet: 'status', tabindex: -1, '', =>
         @img class: 'status-image'
-        @text "srclib"
+        @text 'srclib'
 
   initialize: ->
-    @messages = new MessagePanelView title: '<img src="atom://sourcegraph-atom/assets/nobuild.svg"></img> srclib status', rawTitle: true
+    @messages = new MessagePanelView
+      title: '<img src="atom://sourcegraph-atom/assets/nobuild.svg">\
+              </img> srclib status'
+      rawTitle: true
     @on 'click', =>
       @messages.attach()
 
-  serialize: ->
+  serialize: -> undefined
 
   reset: ->
-    @status.removeClass("build-success").removeClass("build-warn").removeClass("build-fail").removeClass("build-inprogress")
+    @status
+      .removeClass('build-success')
+      .removeClass('build-warn')
+      .removeClass('build-fail')
+      .removeClass('build-inprogress')
 
   inprogress: (html) ->
     @reset()
-    @status.addClass("build-inprogress")
+    @status.addClass('build-inprogress')
 
     if atom.config.get('sourcegraph-atom.logStatusToConsole')
       console.log(html)
@@ -34,7 +41,7 @@ class SrclibStatusView extends View
 
   error: (html) ->
     @reset()
-    @status.addClass("build-fail")
+    @status.addClass('build-fail')
 
     if atom.config.get('sourcegraph-atom.openMessagePanelOnError')
       @messages.attach()
@@ -50,7 +57,7 @@ class SrclibStatusView extends View
 
   warn: (html) ->
     @reset()
-    @status.addClass("build-warn")
+    @status.addClass('build-warn')
 
 
 
@@ -68,7 +75,7 @@ class SrclibStatusView extends View
 
   success: (html) ->
     @reset()
-    @status.addClass("build-success")
+    @status.addClass('build-success')
 
     if html
       @messages.add(new PlainMessageView({

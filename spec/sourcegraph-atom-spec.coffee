@@ -5,15 +5,15 @@ SourcegraphAtom = require '../lib/sourcegraph-atom'
 # To run a specific `it` or `describe` block add an `f` to the front (e.g. `fit`
 # or `fdescribe`). Remove the `f` to unfocus the block.
 
-describe "SourcegraphAtom", ->
+describe 'SourcegraphAtom', ->
   [workspaceElement, activationPromise] = []
 
   beforeEach ->
     workspaceElement = atom.views.getView(atom.workspace)
     activationPromise = atom.packages.activatePackage('sourcegraph-atom')
 
-  describe "when the sourcegraph-atom:toggle event is triggered", ->
-    it "attaches and then detaches the view", ->
+  describe 'when the sourcegraph-atom:toggle event is triggered', ->
+    it 'attaches and then detaches the view', ->
       # Before the activation event the view is not on the DOM, and no panel
       # has been created
       expect(workspaceElement.querySelector('.sourcegraph-atom')).not.toExist()
@@ -34,7 +34,7 @@ describe "SourcegraphAtom", ->
         atom.commands.dispatch workspaceElement, 'sourcegraph-atom:toggle'
         expect(testAtomPanel.isVisible()).toBe false
 
-    it "hides and shows the view", ->
+    it 'hides and shows the view', ->
       # This test shows you an integration test testing at the view level.
 
       # Attaching the workspaceElement to the DOM is required to allow the
