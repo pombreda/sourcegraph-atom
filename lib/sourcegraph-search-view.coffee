@@ -1,7 +1,6 @@
 {$, $$, SelectListView} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
 openbrowser = require './openbrowser'
-util = require 'util'
 
 module.exports =
 class SearchView extends SelectListView
@@ -15,7 +14,8 @@ class SearchView extends SelectListView
   search: (query) ->
     me = this
     results = []
-    apicall = 'https://sourcegraph.com/api/search?Defs=true&People=true&Repos=true&q=' + query
+    apicall = "https://sourcegraph.com/api/\
+               search?Defs=true&People=true&Repos=true&q=#{query}"
     console.log(apicall)
 
     # If old request is still processing, abort it.
@@ -30,30 +30,31 @@ class SearchView extends SelectListView
         if data.Repos
           for repo in data.Repos
             results.push({
-              text : "(Repo) " + repo.URI,
-              url : 'https://sourcegraph.com/' + repo.URI
+              text: "(Repo) #{repo.URI}",
+              url: "https://sourcegraph.com/#{repo.URI}"
             })
 
         # Shows Defs in seach bar
         if data.Defs
           for def in data.Defs
             results.push({
-              text: "(Def) " + def.Name + " - " + def.Repo,
-              url : util.format("https://www.sourcegraph.com/%s/.%s/%s/.def/%s", def.Repo, def.UnitType, def.Unit, def.Path)
+              text: "(Def) #{def.Name} - #{def.Repo}",
+              url: "https://www.sourcegraph.com/\
+                     #{def.Repo}/#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
             })
 
         # Show People in bar
         if data.People
           for person in data.People
             results.push({
-                text: "(Person) " + person.Name,
-                url : util.format("https://www.sourcegraph.com/%s", person.Login)
-              })
+              text: "(Person) #{person.Name}",
+              url: "https://www.sourcegraph.com/#{person.Login}"
+            })
 
         # Ability to see more results on sourcegraph.com
         results.push({
-          text: "See More Results on Sourcegraph.com",
-          url : "https://sourcegraph.com/search?q=" + query
+          text: 'See More Results on Sourcegraph.com',
+          url: "https://sourcegraph.com/search?q=#{query}"
         })
 
         me.list.empty()
