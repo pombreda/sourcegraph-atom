@@ -1,6 +1,6 @@
 {$, $$, SelectListView} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
-openbrowser = require './openbrowser'
+util = require './util'
 
 module.exports =
 class SearchView extends SelectListView
@@ -103,7 +103,7 @@ class SearchView extends SelectListView
   confirmed: (result) ->
     @cancel()
     if result.url
-      openbrowser(result.url)
+      util.openBrowser(result.url)
 
   hide: ->
     @panel?.hide()
