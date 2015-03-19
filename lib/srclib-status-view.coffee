@@ -1,3 +1,4 @@
+{Emitter} = require 'atom'
 {View} = require 'atom-space-pen-views'
 {MessagePanelView, PlainMessageView} = require 'atom-message-panel'
 
@@ -10,21 +11,39 @@ class SrclibStatusView extends View
         @text 'srclib'
 
   initialize: ->
+    @emitter = new Emitter
+
     @messages = new MessagePanelView
       title: '<img src="atom://sourcegraph-atom/assets/nobuild.svg">\
               </img> srclib status'
       rawTitle: true
     @on 'click', =>
       @messages.attach()
+    @on 'click', '.status-icon', =>
+      @emitter.emit 'toggle'
+      return false
 
-  serialize: -> undefined
+  onToggle: (callback) ->
+    @emitter.on 'toggle', callback
 
   reset: ->
     @status
+      .removeClass('state-disabled')
       .removeClass('build-success')
       .removeClass('build-warn')
       .removeClass('build-fail')
       .removeClass('build-inprogress')
+
+  # Make the icon look disabled, remove message pane.
+  disable: ->
+    @reset()
+    @status.addClass('state-disabled')
+    @messages.detach()
+
+  # Re-enable message pane.
+  enable: ->
+    @reset()
+    @messages.attach()
 
   inprogress: (html) ->
     @reset()
