@@ -1,116 +1,18 @@
-{Editor, Range, Point} = require 'atom'
-{TextEditorView} = require 'atom-space-pen-views'
-
-
-path = require 'path'
 child_process = require 'child_process'
-openbrowser = require './openbrowser'
+
+util = require './util'
+IdentifierHighlighter = require './identifier-highlighter'
 
 
 ExamplesView = require './sourcegraph-examples-view'
 examplesView = null
 
-SrclibStatusView = require('./srclib-status-view')
+SrclibStatusView = require './srclib-status-view'
 statusView = null
 
-SearchView = require('./sourcegraph-search-view')
+SearchView = require './sourcegraph-search-view'
 searchView = null
 
-class IdentifierHighlighting
-  constructor: (@editor) ->
-    @markers = []
-
-    @buffer = @editor?.getBuffer()
-    return unless @buffer?
-
-    @filePath = @editor.getPath()
-
-    # Clear highlights on modification to
-    # prevent highlights from getting out of sync with actual text.
-    modifiedsubscription = @buffer.onDidStopChanging =>
-      @clearHighlights()
-
-    # Re-highlight identifiers on save
-    savedsubscription = @buffer.onDidSave =>
-      @highlight()
-
-    # When buffer is destroyed, delete this watch
-    destroyedsubscription = @buffer.once 'destroyed', ->
-      modifiedsubscription?.off()
-      savedsubscription?.off()
-
-    @highlight()
-
-  highlight: ->
-    @clearHighlights()
-
-    if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
-      command = "#{src()} api list
-                  --file \"#{@filePath}\""
-
-      highlighter = this
-
-      statusView.inprogress("Finding list of references in file: #{command}")
-      child_process.exec(command, {
-        maxBuffer: 200 * 1024 * 100,
-        env: getEnv()
-      }, (error, stdout, stderr) ->
-
-        if error
-          statusView.error("#{command}: #{stderr}")
-        else
-          try
-            output = JSON.parse(stdout)
-          catch error
-            statusView.error("Parsing Error: #{stdout}")
-            throw error
-          if output?.Refs
-            for ref in output.Refs
-              start = byteToPosition(highlighter.editor, ref.Start)
-              end = byteToPosition(highlighter.editor, ref.End)
-
-              range = new Range(start, end)
-              marker = highlighter.editor.markBufferRange(range)
-              decoration = highlighter.editor.decorateMarker(marker,
-               type: 'highlight',
-               class: 'sourcegraph-identifier'
-              )
-              highlighter.markers.push(marker)
-            statusView.success('Highlighted all refs.')
-          else
-            statusView.warn('No references in this file.')
-      )
-
-  clearHighlights: ->
-    for marker in @markers
-      marker.destroy()
-
-repeatString = (str, n) -> new Array( n + 1 ).join( str )
-
-byteToPosition = (editor, byte) ->
-  # FIXME: Only works for ASCII
-  editor.buffer.positionForCharacterIndex(byte)
-
-positionToByte = (editor, point) ->
-  # FIXME: Only works for ASCII
-  editor.buffer.characterIndexForPosition(point)
-
-src = ->
-  location = atom.config.get('sourcegraph-atom.srcExecutablePath').trim()
-  return if location.length then location else 'src'
-
-getEnv = ->
-  goPath = atom.config.get('sourcegraph-atom.goPath').trim()
-  if goPath.length
-    process.env.GOPATH = goPath
-  goRoot = atom.config.get('sourcegraph-atom.goRoot').trim()
-  if goRoot.length
-    process.env.GOROOT = goRoot
-  path = atom.config.get('sourcegraph-atom.path').trim()
-  for p in path.split(':')
-    if p not in process.env.PATH.split(':')
-      process.env.PATH += ':' + p
-  return process.env
 
 module.exports =
   config:
@@ -160,7 +62,7 @@ module.exports =
 
     atom.packages.onDidActivateInitialPackages ->
       atom.workspace.observeTextEditors (editor) ->
-        new IdentifierHighlighting(editor)
+        new IdentifierHighlighter(editor, statusView)
 
     @commands = atom.commands.add 'atom-workspace',
       'sourcegraph-atom:jump-to-definition': => @jumpToDefinition()
@@ -173,6 +75,19 @@ module.exports =
         return new ExamplesView()
       else
         return null
+
+  # Toggle state.
+  toggle: ->
+    if @enabled then @disable() else @enable()
+    return @enabled
+
+  # Disable processing.
+  disable: ->
+    @enabled = false
+
+  # Enable processing.
+  enable: ->
+    @enabled = true
 
   consumeStatusBar: (statusBar) ->
     statusView = new SrclibStatusView()
@@ -188,8 +103,8 @@ module.exports =
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
 
-    offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = "#{src()} api describe
+    offset = util.positionToByte(editor, editor.getCursorBufferPosition())
+    command = "#{util.getSrcBin()} api describe
                 --file=\"#{filePath}\"
                 --start-byte=#{offset}
                 --no-examples"
@@ -197,12 +112,11 @@ module.exports =
     statusView.inprogress("Jump to Definition: #{command}")
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
-      env: getEnv(),
+      env: util.getEnv(),
       (error, stdout, stderr) ->
         if error
           statusView.error("#{command}: #{stderr}")
         else
-
           result = JSON.parse(stdout)
 
           def = result.Def
@@ -213,7 +127,7 @@ module.exports =
               statusView.success('Successfully resolved to local definition.')
               #FIXME: Only works when atom project path matches
               atom.workspace.open( def.File ).then( (editor) ->
-                offset = byteToPosition(editor, def.DefStart)
+                offset = util.byteToPosition(editor, def.DefStart)
 
                 editor.setCursorBufferPosition(offset)
                 editor.scrollToCursorPosition()
@@ -223,22 +137,21 @@ module.exports =
               # TODO: Resolve to local file, for now, just opens sourcegraph.com
               url = "http://www.sourcegraph.com/\
                     #{def.Repo}/#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
-              openbrowser(url)
-
+              util.openBrowser(url)
     )
 
   docsExamples: ->
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
-    offset = positionToByte(editor, editor.getCursorBufferPosition())
-    command = "#{src()} api describe
+    offset = util.positionToByte(editor, editor.getCursorBufferPosition())
+    command = "#{util.getSrcBin()} api describe
                 --file=\"#{filePath}\"
                 --start-byte=#{offset}"
     statusView.inprogress("Documentation and Examples: #{command}")
 
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
-      env: getEnv()
+      env: util.getEnv()
       (error, stdout, stderr) ->
         if error
           statusView.error("#{command}: #{stderr}")
