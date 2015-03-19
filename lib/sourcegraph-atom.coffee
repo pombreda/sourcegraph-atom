@@ -183,7 +183,7 @@ module.exports =
                 split: 'right',
                 searchAllPanes: true
               )
-              .done (examplesView) ->
+              .done (examplesView) =>
                 examplesView.display(result)
                 previousActivePane.activate()
                 @statusView.success('Opened docs panel')
