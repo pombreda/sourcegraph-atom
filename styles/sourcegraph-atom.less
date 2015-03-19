@@ -4,41 +4,66 @@
 // for a full listing of what's available.
 @import "ui-variables";
 
-.build-status {
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+
+.status {
   color: #939494;
 
-  img {
-    content:url("atom://sourcegraph-atom/assets/nobuild.svg");
-    max-width: 100%;
-    max-height: 100%;
+  .status-icon {
+    margin-right: 4px;
+    vertical-align: middle;
+    height: 16px;
+    width: 16px;
+    background-color: #939494;
+    display: inline-block;
+    -webkit-mask-image: url("atom://sourcegraph-atom/assets/icon.svg");
+  }
+
+  &.state-disabled {
+    color: #1a1a1a;
+
+    .status-icon {
+      background-color: #1a1a1a;
+    }
   }
 
   &.build-success {
     color: #00FF62;
 
-    img {
-      content:url("atom://sourcegraph-atom/assets/buildsuccess.svg");
+    .status-icon {
+      background-color: #00FF62;
     }
   }
 
   &.build-fail {
     color: #FF3C00;
 
-    img {
-      content:url("atom://sourcegraph-atom/assets/buildfail.svg");
+    .status-icon {
+      background-color: #FF3C00;
     }
   }
 
   &.build-inprogress {
-    img {
-      // content:url("atom://sourcegraph-atom/assets/spinner.svg");
+    color: #00FF62;
+
+    .status-icon {
+      background-color: #00FF62;
+      -webkit-animation: spin 2s linear infinite;
     }
   }
 
   &.build-warn {
     color: #ff982d;
-    img {
-      content:url("atom://sourcegraph-atom/assets/warn.svg");
+
+    .status-icon {
+      background-color: #ff982d;
     }
   }
 }

@@ -5,8 +5,8 @@ module.exports =
 class SrclibStatusView extends View
   @content: ->
     @div class: 'inline-block', =>
-      @span class: 'build-status', outlet: 'status', tabindex: -1, '', =>
-        @img class: 'status-image'
+      @span class: 'status', outlet: 'status', tabindex: -1, '', =>
+        @div class: 'status-icon'
         @text 'srclib'
 
   initialize: ->
@@ -58,8 +58,6 @@ class SrclibStatusView extends View
   warn: (html) ->
     @reset()
     @status.addClass('build-warn')
-
-
 
     if html
       @messages.add(new PlainMessageView({
