@@ -8,16 +8,16 @@ class SrclibStatusView extends View
     @div class: 'inline-block', =>
       @span class: 'status', outlet: 'status', tabindex: -1, '', =>
         @div class: 'status-icon'
-        @text 'srclib'
+        @span 'srclib', class: 'status-text'
 
   initialize: ->
     @emitter = new Emitter
 
     @messages = new MessagePanelView
-      title: '<img src="atom://sourcegraph-atom/assets/nobuild.svg">\
+      title: '<img src="atom://sourcegraph-atom/assets/icon.svg">\
               </img> srclib status'
       rawTitle: true
-    @on 'click', =>
+    @on 'click', '.status-text', =>
       @messages.attach()
     @on 'click', '.status-icon', =>
       @emitter.emit 'toggle'
@@ -38,7 +38,7 @@ class SrclibStatusView extends View
   disable: ->
     @reset()
     @status.addClass('state-disabled')
-    @messages.detach()
+    @messages.close()
 
   # Re-enable message pane.
   enable: ->
