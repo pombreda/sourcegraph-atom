@@ -5,8 +5,6 @@ util = require './util'
 
 module.exports =
 class IdentifierHighlighter
-  # XXX: statusView is not really needed,
-  #      could just emit event so it's more decoupled.
   constructor: (@editor, @statusView) ->
     @markers = []
 
@@ -31,7 +29,27 @@ class IdentifierHighlighter
 
     @highlight()
 
+  # Check if we're edditing something `srclib` can parse.
+  # FIXME: Remove this when srclib toolchains and atom integration
+  #        are more stable.
+  isValidEditor: ->
+    # Supported languages:
+    supportedScopes = [
+      'source.python',
+      'source.go',
+      'source.java',
+      # Beta:
+      'source.haskell',
+      'source.js',
+      'source.scala',
+      'text.html.php',
+      'text.ruby',
+    ]
+    @editor?.getGrammar()?.scopeName in supportedScopes
+
   highlight: ->
+    return if not @enabled or not @isValidEditor()
+
     @clearHighlights()
 
     if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
@@ -70,6 +88,15 @@ class IdentifierHighlighter
             @statusView.warn('No references in this file.')
       )
 
+  # Enable highlighter.
+  enable: ->
+    @enabled = true
+    @highlight()
+
+  # Disable highighter.
+  disable: ->
+    @enabled = false
+    @clearHighlights()
+
   clearHighlights: ->
-    for marker in @markers
-      marker.destroy()
+    marker.destroy() for marker in @markers

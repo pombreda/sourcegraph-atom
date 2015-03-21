@@ -1,17 +1,11 @@
+{CompositeDisposable} = require 'atom'
 child_process = require 'child_process'
 
 util = require './util'
 IdentifierHighlighter = require './identifier-highlighter'
-
-
-ExamplesView = require './sourcegraph-examples-view'
-examplesView = null
-
 SrclibStatusView = require './srclib-status-view'
-statusView = null
-
 SearchView = require './sourcegraph-search-view'
-searchView = null
+ExamplesView = require './sourcegraph-examples-view'
 
 
 module.exports =
@@ -58,16 +52,30 @@ module.exports =
     if '/usr/local/bin' not in process.env.PATH.split(':')
       process.env.PATH += ':/usr/local/bin'
 
-    searchView = new SearchView(state.viewState)
+    @statusView = new SrclibStatusView()
 
-    atom.packages.onDidActivateInitialPackages ->
-      atom.workspace.observeTextEditors (editor) ->
-        new IdentifierHighlighter(editor, statusView)
+    @searchView = new SearchView(state.viewState)
 
-    @commands = atom.commands.add 'atom-workspace',
+    @highlighters = []
+    atom.packages.onDidActivateInitialPackages =>
+      atom.workspace.observeTextEditors (editor) =>
+        @highlighters.push new IdentifierHighlighter(editor, @statusView)
+
+    # Restore enabled state.
+    # After toggle the state will be correct.
+    @enabled = not state.enabled
+    @toggle()
+
+    @subscriptions = new CompositeDisposable
+
+    # Add commands.
+    @subscriptions.add atom.commands.add 'atom-workspace',
       'sourcegraph-atom:jump-to-definition': => @jumpToDefinition()
       'sourcegraph-atom:show-documentation-and-examples': => @docsExamples()
       'sourcegraph-atom:search-on-sourcegraph': => @searchOnSourcegraph()
+      'sourcegraph-atom:toggle': => @toggle()
+
+    @subscriptions.add @statusView.onToggle => @toggle()
 
     atom.workspace.addOpener (uri) ->
       console.log(uri)
@@ -78,28 +86,36 @@ module.exports =
 
   # Toggle state.
   toggle: ->
+    console.log('main toggle')
     if @enabled then @disable() else @enable()
     return @enabled
 
   # Disable processing.
   disable: ->
+    console.log('sourcegraph-atom: toggle disable')
+    @statusView.disable()
+    hl.disable() for hl in @highlighters
     @enabled = false
 
   # Enable processing.
   enable: ->
+    console.log('sourcegraph-atom: toggle enable')
+    @statusView.enable()
+    hl.enable() for hl in @highlighters
     @enabled = true
 
   consumeStatusBar: (statusBar) ->
-    statusView = new SrclibStatusView()
     # Attach status view
-    @statusBarTile = statusBar.addLeftTile(item: statusView, priority: 100)
+    @statusBarTile = statusBar.addLeftTile(item: @statusView, priority: 100)
 
   deactivate: ->
-    @commands?.dispose()
+    @subscriptions?.dispose()
     @statusBarTile?.destroy()
     @statusBarTile = null
 
   jumpToDefinition: ->
+    return if not @enabled
+
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
 
@@ -109,22 +125,22 @@ module.exports =
                 --start-byte=#{offset}
                 --no-examples"
 
-    statusView.inprogress("Jump to Definition: #{command}")
+    @statusView.inprogress("Jump to Definition: #{command}")
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
       env: util.getEnv(),
-      (error, stdout, stderr) ->
+      (error, stdout, stderr) =>
         if error
-          statusView.error("#{command}: #{stderr}")
+          @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)
 
           def = result.Def
           if not def
-            statusView.warn('No reference found under cursor.')
+            @statusView.warn('No reference found under cursor.')
           else
             if not def.Repo
-              statusView.success('Successfully resolved to local definition.')
+              @statusView.success('Successfully resolved to local definition.')
               #FIXME: Only works when atom project path matches
               atom.workspace.open( def.File ).then( (editor) ->
                 offset = util.byteToPosition(editor, def.DefStart)
@@ -133,7 +149,7 @@ module.exports =
                 editor.scrollToCursorPosition()
               )
             else
-              statusView.success('Successfully resolved to remote definition.')
+              @statusView.success('Successfully resolved to remote definition.')
               # TODO: Resolve to local file, for now, just opens sourcegraph.com
               url = "http://www.sourcegraph.com/\
                     #{def.Repo}/.#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
@@ -141,24 +157,25 @@ module.exports =
     )
 
   docsExamples: ->
+    return if not @enabled
     editor = atom.workspace.getActiveTextEditor()
     filePath = editor.getPath()
     offset = util.positionToByte(editor, editor.getCursorBufferPosition())
     command = "#{util.getSrcBin()} api describe
                 --file=\"#{filePath}\"
                 --start-byte=#{offset}"
-    statusView.inprogress("Documentation and Examples: #{command}")
+    @statusView.inprogress("Documentation and Examples: #{command}")
 
     child_process.exec(command,
       maxBuffer: 200 * 1024 * 100,
       env: util.getEnv()
-      (error, stdout, stderr) ->
+      (error, stdout, stderr) =>
         if error
-          statusView.error("#{command}: #{stderr}")
+          @statusView.error("#{command}: #{stderr}")
         else
           result = JSON.parse(stdout)
           if not result.Def
-            statusView.warn('No reference found under cursor.')
+            @statusView.warn('No reference found under cursor.')
           else
             previousActivePane = atom.workspace.getActivePane()
             atom.workspace
@@ -166,11 +183,16 @@ module.exports =
                 split: 'right',
                 searchAllPanes: true
               )
-              .done (examplesView) ->
+              .done (examplesView) =>
                 examplesView.display(result)
                 previousActivePane.activate()
-                statusView.success('Opened docs panel')
+                @statusView.success('Opened docs panel')
     )
 
   searchOnSourcegraph: ->
-    searchView.toggle()
+    return if not @enabled
+    @searchView.toggle()
+
+  # Serialize state so we can restore it after next load.
+  serialize: ->
+    enabled: @enabled
