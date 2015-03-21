@@ -136,7 +136,7 @@ module.exports =
               statusView.success('Successfully resolved to remote definition.')
               # TODO: Resolve to local file, for now, just opens sourcegraph.com
               url = "http://www.sourcegraph.com/\
-                    #{def.Repo}/#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
+                    #{def.Repo}/.#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
               util.openBrowser(url)
     )
 
