@@ -3,10 +3,30 @@
   "main": "./lib/sourcegraph-atom",
   "version": "0.1.0",
   "description": "Sourcegraph and srclib integration for the Atom editor.",
-  "repository": "https://github.com/sourcegraph/sourcegraph-atom",
+  "keywords": [
+    "srclib",
+    "sourcegraph",
+    "definition",
+    "analysis",
+    "documentation",
+    "examples"
+  ],
+  "contributors": [
+    "Varun Ramesh",
+    "Samer Masterson",
+    "Miks Kalnins <MiksKalnins@MaikuMori.com> (http://maikumori.com)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sourcegraph/sourcegraph-atom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sourcegraph/sourcegraph-atom/issues"
+  },
+  "homepage": "https://github.com/sourcegraph/sourcegraph-atom",
   "license": "MIT",
   "engines": {
-    "atom": ">=0.174.0 <2.0.0"
+    "atom": ">=0.177.0 <2.0.0"
   },
   "dependencies": {
     "atom-message-panel": ">=1.1.1",
