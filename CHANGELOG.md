@@ -1,6 +1,7 @@
 ## 0.2
 
  * On fresh install have the plugin in enabled state. Issue #18.
+ * Fix `status-bar` deprecation warning.
 
 ## 0.1.1 - First APM Release
 
