@@ -4,6 +4,7 @@
  * Fix deprecation warnings.
  * `jump-to-definition` now tries to open local file first before falling
    back to opening `sourcegraph.com`.
+ * Fix `This TextEditor has been destroyed` error. Issue #17.
 
 ## 0.1.1 - First APM Release
 

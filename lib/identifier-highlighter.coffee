@@ -99,3 +99,4 @@ class IdentifierHighlighter
 
   clearHighlights: ->
     marker.destroy() for marker in @markers
+    @markers = []

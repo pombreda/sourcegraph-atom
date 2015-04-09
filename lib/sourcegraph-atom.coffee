@@ -57,10 +57,17 @@ module.exports =
 
     @searchView = new SearchView(state.viewState)
 
+    @subscriptions = new CompositeDisposable
+
     @highlighters = []
     atom.packages.onDidActivateInitialPackages =>
       atom.workspace.observeTextEditors (editor) =>
-        @highlighters.push new IdentifierHighlighter(editor, @statusView)
+        hl = new IdentifierHighlighter(editor, @statusView)
+        @highlighters.push hl
+        # When editor is destroyed remove highlighter.
+        @subscriptions.add editor.onDidDestroy(=>
+          @highlighters.splice(@highlighters.indexOf(hl), 1)
+        )
 
     # Defaults.
     state.enabled = true if not state.enabled?
@@ -69,8 +76,6 @@ module.exports =
     # After toggle the state will be correct.
     @enabled = not state.enabled
     @toggle()
-
-    @subscriptions = new CompositeDisposable
 
     # Add commands.
     @subscriptions.add atom.commands.add 'atom-workspace',
