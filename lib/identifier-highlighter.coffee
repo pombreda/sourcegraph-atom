@@ -19,11 +19,11 @@ class IdentifierHighlighter
       @clearHighlights()
 
     # Re-highlight identifiers on save
-    savedsubscription = @buffer.onDidSave =>
+    savedSubscription = @buffer.onDidSave =>
       @highlight()
 
     # When buffer is destroyed, delete this watch
-    destroyedsubscription = @buffer.once 'destroyed', ->
+    destroyedSubscription = @buffer.once 'destroyed', ->
       modifiedsubscription?.dispose()
       savedsubscription?.dispose()
 
@@ -53,13 +53,17 @@ class IdentifierHighlighter
     @clearHighlights()
 
     if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
+      # Figure out project directory for editors file.
+      [projectPath, relPath] = atom.project.relativizePath(@editor.getPath())
+
       command = "#{util.getSrcBin()} api list
                   --file \"#{@filePath}\""
 
       @statusView.inprogress("Finding list of references in file: #{command}")
       child_process.exec(command, {
         maxBuffer: 200 * 1024 * 100,
-        env: util.getEnv()
+        env: util.getEnv(),
+        cwd: projectPath,
       }, (error, stdout, stderr) =>
 
         if error

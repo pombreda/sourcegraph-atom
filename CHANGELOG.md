@@ -5,6 +5,7 @@
  * `jump-to-definition` now tries to open local file first before falling
    back to opening `sourcegraph.com`.
  * Fix `This TextEditor has been destroyed` error. Issue #17.
+ * Fix plugin failing when more than one Atom window is open. Issue #20.
 
 ## 0.1.1 - First APM Release
 
