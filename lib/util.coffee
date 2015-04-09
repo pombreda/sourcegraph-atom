@@ -1,5 +1,4 @@
-exec = require('child_process').exec
-os = require('os')
+{exec} = require('child_process')
 
 module.exports =
   # Get `src` binary location.
@@ -24,15 +23,13 @@ module.exports =
   # Open browser.
   openBrowser: (url) ->
     console.log("Opening #{url} ...")
-    switch os.platform()
+    switch process.platform
       when 'linux'
         exec("xdg-open \"#{url}\"")
       when 'darwin'
-        # TODO: Confirm that this works on Mac
         exec("open \"#{url}\"")
       when 'win32'
         # TODO: Confirm that this works on Windows
-        # TODO: What about Windows 64bit?
         exec("start \"#{url}\"")
       else
         console.log('Unable to open web browser - unkown platform.')
