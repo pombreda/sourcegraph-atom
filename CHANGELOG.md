@@ -1,7 +1,9 @@
 ## 0.2
 
  * On fresh install have the plugin in enabled state. Issue #18.
- * Fix `status-bar` deprecation warning.
+ * Fix deprecation warnings.
+ * `jump-to-definition` now tries to open local file first before falling
+   back to opening `sourcegraph.com`.
 
 ## 0.1.1 - First APM Release
 

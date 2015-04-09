@@ -1,5 +1,6 @@
 {CompositeDisposable} = require 'atom'
 child_process = require 'child_process'
+fs = require 'fs'
 
 util = require './util'
 IdentifierHighlighter = require './identifier-highlighter'
@@ -153,10 +154,17 @@ module.exports =
               )
             else
               @statusView.success('Successfully resolved to remote definition.')
-              # TODO: Resolve to local file, for now, just opens sourcegraph.com
-              url = "http://www.sourcegraph.com/\
-                    #{def.Repo}/.#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
-              util.openBrowser(url)
+              if fs.existsSync(def.File)
+                atom.workspace
+                  .open(def.File)
+                  .then (editor) ->
+                    pos = util.byteToPosition(editor, def.DefStart)
+                    editor.setCursorScreenPosition(pos)
+              else
+                util.openBrowser(
+                  "http://www.sourcegraph.com/#{def.Repo}/\
+                  .#{def.UnitType}/#{def.Unit}/.def/#{def.Path}"
+                )
     )
 
   docsExamples: ->
