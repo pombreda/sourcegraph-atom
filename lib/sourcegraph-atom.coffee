@@ -59,18 +59,18 @@ module.exports =
 
     @subscriptions = new CompositeDisposable
 
+    # Defaults.
+    state.enabled = true if not state.enabled?
+
     @highlighters = []
     atom.packages.onDidActivateInitialPackages =>
       atom.workspace.observeTextEditors (editor) =>
-        hl = new IdentifierHighlighter(editor, @statusView)
+        hl = new IdentifierHighlighter(editor, @statusView, state.enabled)
         @highlighters.push hl
         # When editor is destroyed remove highlighter.
         @subscriptions.add editor.onDidDestroy(=>
           @highlighters.splice(@highlighters.indexOf(hl), 1)
         )
-
-    # Defaults.
-    state.enabled = true if not state.enabled?
 
     # Restore enabled state.
     # After toggle the state will be correct.

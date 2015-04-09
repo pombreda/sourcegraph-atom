@@ -5,29 +5,31 @@ util = require './util'
 
 module.exports =
 class IdentifierHighlighter
-  constructor: (@editor, @statusView) ->
+  constructor: (@editor, @statusView, @enabled) ->
     @markers = []
 
     @buffer = @editor?.getBuffer()
     return unless @buffer?
 
-    @filePath = @editor.getPath()
-
     # Clear highlights on modification to
     # prevent highlights from getting out of sync with actual text.
-    modifiedsubscription = @buffer.onDidStopChanging =>
+    modifiedSubscription = @buffer.onDidStopChanging =>
       @clearHighlights()
 
     # Re-highlight identifiers on save
     savedSubscription = @buffer.onDidSave =>
       @highlight()
 
-    # When buffer is destroyed, delete this watch
-    destroyedSubscription = @buffer.once 'destroyed', ->
-      modifiedsubscription?.dispose()
-      savedsubscription?.dispose()
+    # When buffer is destroyed do cleanup.
+    destroyedSubscription = @buffer.onDidDestroy ->
+      modifiedSubscription?.dispose()
+      savedSubscription?.dispose()
+      destroyedSubscription?.dispose()
 
-    @highlight()
+    console.log 'enabled', @enabled
+    if @enabled
+      # Delay this because buffer is still changing.
+      setTimeout @highlight, 500
 
   # Check if we're edditing something `srclib` can parse.
   # FIXME: Remove this when srclib toolchains and atom integration
@@ -47,17 +49,18 @@ class IdentifierHighlighter
     ]
     @editor?.getGrammar()?.scopeName in supportedScopes
 
-  highlight: ->
+  highlight: =>
     return if not @enabled or not @isValidEditor()
 
     @clearHighlights()
 
     if atom.config.get('sourcegraph-atom.highlightReferencesInFile')
       # Figure out project directory for editors file.
-      [projectPath, relPath] = atom.project.relativizePath(@editor.getPath())
+      filePath = @editor.getPath()
+      [projectPath, relPath] = atom.project.relativizePath(filePath)
 
       command = "#{util.getSrcBin()} api list
-                  --file \"#{@filePath}\""
+                  --file \"#{filePath}\""
 
       @statusView.inprogress("Finding list of references in file: #{command}")
       child_process.exec(command, {
@@ -101,6 +104,7 @@ class IdentifierHighlighter
     @enabled = false
     @clearHighlights()
 
+  # Remove markers from buffer.
   clearHighlights: ->
     marker.destroy() for marker in @markers
     @markers = []

@@ -6,6 +6,7 @@
    back to opening `sourcegraph.com`.
  * Fix `This TextEditor has been destroyed` error. Issue #17.
  * Fix plugin failing when more than one Atom window is open. Issue #20.
+ * Highlight references when Atom is started and has buffers open. Issue #21.
 
 ## 0.1.1 - First APM Release
 
