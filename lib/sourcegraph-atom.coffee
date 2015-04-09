@@ -61,6 +61,9 @@ module.exports =
       atom.workspace.observeTextEditors (editor) =>
         @highlighters.push new IdentifierHighlighter(editor, @statusView)
 
+    # Defaults.
+    state.enabled = true if not state.enabled?
+
     # Restore enabled state.
     # After toggle the state will be correct.
     @enabled = not state.enabled
