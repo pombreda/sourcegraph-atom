@@ -24,8 +24,8 @@ class IdentifierHighlighter
 
     # When buffer is destroyed, delete this watch
     destroyedsubscription = @buffer.once 'destroyed', ->
-      modifiedsubscription?.off()
-      savedsubscription?.off()
+      modifiedsubscription?.dispose()
+      savedsubscription?.dispose()
 
     @highlight()
 
@@ -72,7 +72,6 @@ class IdentifierHighlighter
             throw error
           if output?.Refs
             for ref in output.Refs
-              console.log('edit', @editor)
               start = util.byteToPosition(@editor, ref.Start)
               end = util.byteToPosition(@editor, ref.End)
 
